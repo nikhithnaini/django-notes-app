@@ -1,0 +1,33 @@
+pipeline {
+    agent any 
+    stages{
+        stage("code"){
+            steps{
+                git url:"https://github.com/nikhithnaini/django-notes-app",branch: "main" 
+            }
+        }
+        stage("build"){ 
+            steps{
+                sh "docker build -t my-todo ."
+            }
+            
+        }
+        stage("docker hub"){
+            steps{
+                echo"pushing to hub"
+                withCredentials([usernamePassword(credentialsId: 'dockerhub', passwordVariable: 'dockerpass', usernameVariable: 'dockeruser')]) {
+                    sh "docker tag my-todo ${env.dockeruser}/my-todo:latest"
+                    sh "docker login -u ${env.dockeruser} -p ${env.dockerpass}"
+                    sh "docker push ${env.dockeruser}/my-todo:latest"
+                }
+                
+            }
+        }
+        stage("deploy"){
+            steps{
+                echo "deploying"
+                sh " docker-compose down && docker-compose up -d"
+            }
+        }
+    }
+}
